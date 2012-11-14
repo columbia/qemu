@@ -69,6 +69,7 @@ enum {
     VE_ETHERNET,
     VE_USB,
     VE_DAPROM,
+    VE_TESTDEV,
 };
 
 static target_phys_addr_t motherboard_legacy_map[] = {
@@ -136,6 +137,7 @@ static target_phys_addr_t motherboard_aseries_map[] = {
     [VE_RTC] = 0x1c170000,
     [VE_COMPACTFLASH] = 0x1c1a0000,
     [VE_CLCD] = 0x1c1f0000,
+    [VE_TESTDEV] = 0xff000000,
 };
 
 /* Structure defining the peculiarities of a specific daughterboard */
@@ -432,6 +434,9 @@ static void vexpress_common_init(const VEDBoardInfo *daughterboard,
     sysbus_create_simple("virtio-mmio", 0x4e200000, pic[44]);
     sysbus_create_simple("virtio-mmio", 0x4e300000, pic[45]);
     sysbus_create_simple("virtio-mmio", 0x4e400000, pic[46]);
+
+    /* test device for unit test measurements */
+    sysbus_create_simple("testdev", map[VE_TESTDEV], pic[50]);
 
     /* 0x4e000000 LAN9118 Ethernet */
     /*
