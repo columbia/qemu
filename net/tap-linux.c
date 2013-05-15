@@ -33,7 +33,7 @@
 #include "qemu-common.h"
 #include "qemu-error.h"
 
-#define PATH_NET_TUN "/dev/net/tun"
+#define PATH_NET_TUN "/dev/tun"
 
 int tap_open(char *ifname, int ifname_size, int *vnet_hdr, int vnet_hdr_required)
 {
