@@ -3,6 +3,7 @@ common-obj-$(CONFIG_VIRTIO_PCI) += virtio-pci.o
 common-obj-y += virtio-bus.o
 common-obj-y += virtio-mmio.o
 common-obj-$(CONFIG_VIRTIO_BLK_DATA_PLANE) += dataplane/
+common-obj-y += virtio-testdev.o
 
 obj-y += virtio.o virtio-balloon.o 
 obj-$(CONFIG_LINUX) += vhost.o
