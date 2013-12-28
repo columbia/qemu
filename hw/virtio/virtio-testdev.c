@@ -115,25 +115,25 @@ static uint32_t virtio_testdev_get_features(VirtIODevice *vdev, uint32_t f)
     return f;
 }
 
-static int virtio_testdev_init(VirtIODevice *vdev)
+static void virtio_testdev_realize(DeviceState *dev, Error **errp)
 {
+    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
     virtio_init(vdev, "virtio-testdev", VIRTIO_ID_TESTDEV, CONFIG_SIZE);
-    return 0;
 }
 
-static int virtio_testdev_exit(DeviceState *qdev)
+static void virtio_testdev_unrealize(DeviceState *dev, Error **errp)
 {
-    virtio_cleanup(VIRTIO_DEVICE(qdev));
-    return 0;
+    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
+    virtio_cleanup(vdev);
 }
 
 static void virtio_testdev_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     VirtioDeviceClass *vdc = VIRTIO_DEVICE_CLASS(klass);
-    dc->exit = virtio_testdev_exit;
+    dc->unrealize = virtio_testdev_unrealize;
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
-    vdc->init = virtio_testdev_init;
+    vdc->realize = virtio_testdev_realize;
     vdc->get_config = virtio_testdev_get_config;
     vdc->set_config = virtio_testdev_set_config;
     vdc->get_features = virtio_testdev_get_features;
