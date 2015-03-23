@@ -20,6 +20,7 @@
  */
 
 #include "hw/sysbus.h"
+#include "hw/pci/msi.h"
 
 #define TYPE_GICV2M "gicv2m"
 #define GICV2M(obj) OBJECT_CHECK(GICv2mState, (obj), TYPE_GICV2M)
@@ -142,6 +143,8 @@ static void gicv2m_init(Object *obj)
 
     memory_region_init_io(&s->iomem, OBJECT(s), &gicv2m_ops, s, "gicv2m", 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
+
+    msi_supported = true;
 }
 
 static Property gicv2m_properties[] = {
