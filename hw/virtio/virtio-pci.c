@@ -446,6 +446,7 @@ static int kvm_virtio_pci_vq_vector_use(VirtIOPCIProxy *proxy,
                                         MSIMessage msg)
 {
     VirtIOIRQFD *irqfd = &proxy->vector_irqfd[vector];
+#if 0
     int ret;
 
     if (irqfd->users == 0) {
@@ -455,6 +456,8 @@ static int kvm_virtio_pci_vq_vector_use(VirtIOPCIProxy *proxy,
         }
         irqfd->virq = ret;
     }
+#endif
+        irqfd->virq = msg.data;
     irqfd->users++;
     return 0;
 }

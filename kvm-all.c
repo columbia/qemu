@@ -964,12 +964,16 @@ typedef struct KVMMSIRoute {
 
 static void set_gsi(KVMState *s, unsigned int gsi)
 {
+#if 0
     s->used_gsi_bitmap[gsi / 32] |= 1U << (gsi % 32);
+#endif
 }
 
 static void clear_gsi(KVMState *s, unsigned int gsi)
 {
+#if 0
     s->used_gsi_bitmap[gsi / 32] &= ~(1U << (gsi % 32));
+#endif
 }
 
 void kvm_init_irq_routing(KVMState *s)

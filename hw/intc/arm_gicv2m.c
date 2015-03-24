@@ -134,6 +134,12 @@ static void gicv2m_realize(DeviceState *dev, Error **errp)
     for (i = 0; i < s->num_spi; i++) {
         sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->spi[i]);
     }
+
+
+    msi_supported = true;
+    kvm_msi_via_irqfd_allowed = true;
+    kvm_gsi_direct_mapping = true;
+
 }
 
 static void gicv2m_init(Object *obj)
@@ -144,7 +150,6 @@ static void gicv2m_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &gicv2m_ops, s, "gicv2m", 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
 
-    msi_supported = true;
 }
 
 static Property gicv2m_properties[] = {
