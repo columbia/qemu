@@ -592,6 +592,17 @@ def log(stats):
         statline()
         line += 1
 
+def keep(stats):
+    s = stats.get()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        s = stats.get()
+    for key in sorted(s.keys()):
+        values = s[key]
+        print '%-22s%10d%10d' % (key, values[0], values[1])
+
 options = optparse.OptionParser()
 options.add_option('-1', '--once', '--batch',
                    action = 'store_true',
@@ -604,6 +615,12 @@ options.add_option('-l', '--log',
                    default = False,
                    dest = 'log',
                    help = 'run in logging mode (like vmstat)',
+                   )
+options.add_option('-k', '--keep',
+                   action = 'store_true',
+                   default = False,
+                   dest = 'keep',
+                   help = 'keep running until interrupted, print results',
                    )
 options.add_option('-t', '--tracepoints',
                    action = 'store_true',
@@ -640,9 +657,15 @@ if len(providers) == 0:
 stats = Stats(providers, fields = options.fields)
 
 if options.log:
-    log(stats)
-elif not options.once:
+    try:
+        log(stats)
+    except KeyboardInterrupt:
+        exit()
+elif options.keep:
+    keep(stats)
+    exit()
+elif options.once:
+    batch(stats)
+else:
     import curses.wrapper
     curses.wrapper(tui, stats)
-else:
-    batch(stats)
