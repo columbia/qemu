@@ -466,15 +466,17 @@ class Stats:
         self.providers = providers
         self.fields_filter = fields
         self._update()
+    def _wanted(self, key):
+        import re
+        if not self.fields_filter:
+            return True
+        return re.match(self.fields_filter, key)
+    def _wanted_keys(self, provider):
+        return [key for key in provider.fields() if self._wanted(key)]
     def _update(self):
-        def wanted(key):
-            import re
-            if not self.fields_filter:
-                return True
-            return re.match(self.fields_filter, key) is not None
         self.values = dict()
         for d in providers:
-            provider_fields = [key for key in d.fields() if wanted(key)]
+            provider_fields = self._wanted_keys(d)
             for key in provider_fields:
                 self.values[key] = None
             d.select(provider_fields)
@@ -484,7 +486,7 @@ class Stats:
     def get(self):
         for d in providers:
             new = d.read()
-            for key in d.fields():
+            for key in self._wanted_keys(d):
                 oldval = self.values.get(key, (0, 0))
                 newval = new[key]
                 newdelta = None
