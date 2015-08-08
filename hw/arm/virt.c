@@ -73,6 +73,7 @@ enum {
     VIRT_FW_CFG,
     VIRT_PCIE,
     VIRT_GIC_V2M,
+    VIRT_VIRTTEST,
 };
 
 typedef struct MemMapEntry {
@@ -153,6 +154,7 @@ static const int a15irqmap[] = {
     [VIRT_PCIE] = 3, /* ... to 6 */
     [VIRT_MMIO] = 16, /* ...to 16 + NUM_VIRTIO_TRANSPORTS - 1 */
     [VIRT_GIC_V2M] = 48, /* ...to 48 + NUM_GICV2M_SPIS - 1 */
+    [VIRT_VIRTTEST] = 112, /* ...to 48 + NUM_GICV2M_SPIS - 1 */
 };
 
 static VirtBoardInfo machines[] = {
@@ -327,6 +329,24 @@ static void fdt_add_cpu_nodes(const VirtBoardInfo *vbi)
         g_free(nodename);
     }
 }
+
+static void fdt_add_virttest_node(VirtBoardInfo *vbi)
+{
+    int irq = vbi->irqmap[VIRT_VIRTTEST];
+
+    //vbi->v2m_phandle = qemu_fdt_alloc_phandle(vbi->fdt);
+    qemu_fdt_add_subnode(vbi->fdt, "/intc/v2m");
+    qemu_fdt_setprop_string(vbi->fdt, "/virttest", "compatible",
+                            "columbia,virttest");
+    qemu_fdt_setprop_cells(vbi->fdt, "/virttest", "interrupts",
+                               GIC_FDT_IRQ_TYPE_SPI, irq,
+                               GIC_FDT_IRQ_FLAGS_EDGE_HI_LO);
+    //qemu_fdt_setprop_sized_cells(vbi->fdt, "/intc/v2m", "reg",
+    //                             2, vbi->memmap[VIRT_GIC_V2M].base,
+    //                             2, vbi->memmap[VIRT_GIC_V2M].size);
+    //qemu_fdt_setprop_cell(vbi->fdt, "/intc/v2m", "phandle", vbi->v2m_phandle);
+}
+
 
 static void fdt_add_v2m_gic_node(VirtBoardInfo *vbi)
 {
