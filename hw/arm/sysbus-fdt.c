@@ -28,6 +28,7 @@
 #include "sysemu/sysemu.h"
 #include "hw/vfio/vfio-platform.h"
 #include "hw/vfio/vfio-calxeda-xgmac.h"
+#include "hw/vfio/vfio-amd-xgbe.h"
 #include "hw/arm/fdt.h"
 
 /*
@@ -123,9 +124,129 @@ fail_reg:
     return ret;
 }
 
+/**
+ * add_amd_xgbe_fdt_node
+ *
+ * Generates the combined xgbe/phy node following kernel >4.2
+ * binding documentation:
+ * Documentation/devicetree/bindings/net/amd-xgbe.txt:
+ * Also 2 clock nodes are created (dma_clk and ptp_clk)
+ * All settings currently are hardcoded (MAC address, PHY settings, ...)
+ */
+static int add_amd_xgbe_fdt_node(SysBusDevice *sbdev, void *opaque)
+{
+    PlatformBusFDTData *data = opaque;
+    PlatformBusDevice *pbus = data->pbus;
+    void *fdt = data->fdt;
+    const char *parent_node = data->pbus_node_name;
+    int compat_str_len, i, ret = -1;
+    char *nodename;
+    uint32_t *irq_attr, *reg_attr;
+    uint64_t mmio_base, irq_number;
+    VFIOPlatformDevice *vdev = VFIO_PLATFORM_DEVICE(sbdev);
+    VFIODevice *vbasedev = &vdev->vbasedev;
+    const char clocknames[] = "dma_clk\0ptp_clk";
+    uint8_t mac_address[6] = {0X00, 0x00, 0x1a, 0x1b, 0x8c, 0xe7};
+    uint32_t dmaclk_phandle, ptpclk_phandle;
+
+    /* DMA_CLK and PTP_CLK clock nodes */
+    dmaclk_phandle = qemu_fdt_alloc_phandle(fdt);
+    qemu_fdt_add_subnode(fdt, "/dma-pclk");
+    qemu_fdt_setprop_string(fdt, "/dma-pclk", "compatible", "fixed-clock");
+    qemu_fdt_setprop_cell(fdt, "/dma-pclk", "#clock-cells", 0x0);
+    qemu_fdt_setprop_cell(fdt, "/dma-pclk", "clock-frequency", 0xee6b280);
+    qemu_fdt_setprop_string(fdt, "/dma-pclk", "clock-output-names",
+                                "xgmacclk1_dma_250mhz");
+    qemu_fdt_setprop_cell(fdt, "/dma-pclk", "phandle", dmaclk_phandle);
+
+    ptpclk_phandle = qemu_fdt_alloc_phandle(fdt);
+    qemu_fdt_add_subnode(fdt, "/ptp-pclk");
+    qemu_fdt_setprop_string(fdt, "/ptp-pclk", "compatible", "fixed-clock");
+    qemu_fdt_setprop_cell(fdt, "/ptp-pclk", "#clock-cells", 0x0);
+    qemu_fdt_setprop_cell(fdt, "/ptp-pclk", "clock-frequency", 0xee6b280);
+    qemu_fdt_setprop_string(fdt, "/ptp-pclk", "clock-output-names",
+                                "xgmacclk1_ptp_250mhz");
+    qemu_fdt_setprop_cell(fdt, "/ptp-pclk", "phandle", ptpclk_phandle);
+
+    /* combined XGBE/PHY node */
+    mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, 0);
+    nodename = g_strdup_printf("%s/%s@%" PRIx64, parent_node,
+                               vbasedev->name, mmio_base);
+    qemu_fdt_add_subnode(fdt, nodename);
+
+    compat_str_len = strlen(vdev->compat) + 1;
+    qemu_fdt_setprop(fdt, nodename, "compatible",
+                          vdev->compat, compat_str_len);
+
+    qemu_fdt_setprop(fdt, nodename, "dma-coherent", "", 0);
+    qemu_fdt_setprop(fdt, nodename, "amd,per-channel-interrupt", "", 0);
+    qemu_fdt_setprop(fdt, nodename, "mac-address", mac_address, 6);
+    qemu_fdt_setprop_cells(fdt, nodename, "amd,serdes-pq-skew",
+                           0xa, 0xa, 0x12);
+    qemu_fdt_setprop_cells(fdt, nodename, "amd,serdes-blwc",
+                           0x1, 0x1, 0x0);
+    qemu_fdt_setprop_cell(fdt, nodename, "amd,speed-set", 0x0);
+    qemu_fdt_setprop_string(fdt, nodename, "phy-mode", "xgmii");
+    qemu_fdt_setprop_cells(fdt, nodename, "amd,serdes-dfe-tap-config",
+                           0x3, 0x3, 0x1);
+    qemu_fdt_setprop_cells(fdt, nodename, "amd,serdes-cdr-rate",
+                           0x2, 0x2, 0x7);
+    qemu_fdt_setprop_cells(fdt, nodename, "amd,serdes-dfe-tap-enable",
+                           0x0, 0x0, 0x7f);
+
+    qemu_fdt_setprop(fdt, nodename, "clock-names",
+                     clocknames, sizeof(clocknames));
+    qemu_fdt_setprop_cells(fdt, nodename, "clocks",
+                           dmaclk_phandle, ptpclk_phandle);
+
+    reg_attr = g_new(uint32_t, vbasedev->num_regions * 2);
+    for (i = 0; i < vbasedev->num_regions; i++) {
+        mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, i);
+        reg_attr[2 * i] = cpu_to_be32(mmio_base);
+        reg_attr[2 * i + 1] = cpu_to_be32(
+                                memory_region_size(&vdev->regions[i]->mem));
+    }
+    ret = qemu_fdt_setprop(fdt, nodename, "reg", reg_attr,
+                           vbasedev->num_regions * 2 * sizeof(uint32_t));
+    if (ret) {
+        error_report("could not set reg property of node %s", nodename);
+        goto fail_reg;
+    }
+
+    irq_attr = g_new(uint32_t, vbasedev->num_irqs * 3);
+    for (i = 0; i < vbasedev->num_irqs; i++) {
+        irq_number = platform_bus_get_irqn(pbus, sbdev , i)
+                         + data->irq_start;
+        irq_attr[3 * i] = cpu_to_be32(GIC_FDT_IRQ_TYPE_SPI);
+        irq_attr[3 * i + 1] = cpu_to_be32(irq_number);
+        /*
+          * General device interrupt and PCS auto-negociation interrupts are
+          * level-sensitive while the 4 per-channel interruprs are edge
+          * sensitive
+          */
+        if ((i == 0) || (i == 5)) {
+                irq_attr[3 * i + 2] = cpu_to_be32(GIC_FDT_IRQ_FLAGS_LEVEL_HI);
+        } else {
+                irq_attr[3 * i + 2] = cpu_to_be32(GIC_FDT_IRQ_FLAGS_EDGE_LO_HI);
+        }
+    }
+    ret = qemu_fdt_setprop(fdt, nodename, "interrupts",
+                     irq_attr, vbasedev->num_irqs * 3 * sizeof(uint32_t));
+    if (ret) {
+        error_report("could not set interrupts property of node %s",
+                     nodename);
+    }
+    g_free(irq_attr);
+fail_reg:
+    g_free(reg_attr);
+    g_free(nodename);
+    return ret;
+}
+
 /* list of supported dynamic sysbus devices */
 static const NodeCreationPair add_fdt_node_functions[] = {
     {TYPE_VFIO_CALXEDA_XGMAC, add_calxeda_midway_xgmac_fdt_node},
+    {TYPE_VFIO_AMD_XGBE, add_amd_xgbe_fdt_node},
     {"", NULL}, /* last element */
 };
 
