@@ -341,6 +341,10 @@ static int vfio_set_resample_eventfd(VFIOINTp *intp)
     int argsz, ret;
     int32_t *pfd;
 
+    if (!(intp->flags & VFIO_IRQ_INFO_AUTOMASKED)) {
+        return 0;
+    }
+
     argsz = sizeof(*irq_set) + sizeof(*pfd);
     irq_set = g_malloc0(argsz);
     irq_set->argsz = argsz;
