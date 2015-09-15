@@ -334,17 +334,12 @@ static void fdt_add_virttest_node(VirtBoardInfo *vbi)
 {
     int irq = vbi->irqmap[VIRT_VIRTTEST];
 
-    //vbi->v2m_phandle = qemu_fdt_alloc_phandle(vbi->fdt);
-    qemu_fdt_add_subnode(vbi->fdt, "/intc/v2m");
+    qemu_fdt_add_subnode(vbi->fdt, "/virttest");
     qemu_fdt_setprop_string(vbi->fdt, "/virttest", "compatible",
                             "columbia,virttest");
     qemu_fdt_setprop_cells(vbi->fdt, "/virttest", "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, irq,
                                GIC_FDT_IRQ_FLAGS_EDGE_HI_LO);
-    //qemu_fdt_setprop_sized_cells(vbi->fdt, "/intc/v2m", "reg",
-    //                             2, vbi->memmap[VIRT_GIC_V2M].base,
-    //                             2, vbi->memmap[VIRT_GIC_V2M].size);
-    //qemu_fdt_setprop_cell(vbi->fdt, "/intc/v2m", "phandle", vbi->v2m_phandle);
 }
 
 
