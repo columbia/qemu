@@ -339,7 +339,7 @@ static void fdt_add_virttest_node(VirtBoardInfo *vbi)
                             "columbia,virttest");
     qemu_fdt_setprop_cells(vbi->fdt, "/virttest", "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, irq,
-                               GIC_FDT_IRQ_FLAGS_EDGE_HI_LO);
+                               GIC_FDT_IRQ_FLAGS_EDGE_LO_HI);
 }
 
 
@@ -870,6 +870,8 @@ static void machvirt_init(MachineState *machine)
     create_flash(vbi);
 
     create_gic(vbi, pic);
+
+    fdt_add_virttest_node(vbi);
 
     create_uart(vbi, pic);
 
