@@ -536,6 +536,7 @@ static void create_virtio_devices(const VirtBoardInfo *vbi, qemu_irq *pic)
                                GIC_FDT_IRQ_TYPE_SPI, irq,
                                GIC_FDT_IRQ_FLAGS_EDGE_LO_HI);
         g_free(nodename);
+	fprintf(stderr, "%s %s %lx\n", __func__, nodename, (unsigned long)base);
     }
 }
 

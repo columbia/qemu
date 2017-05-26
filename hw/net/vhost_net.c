@@ -227,6 +227,7 @@ static int vhost_net_start_one(struct vhost_net *net,
         goto fail_notifiers;
     }
 
+    fprintf(stderr, "%s\n", __func__);
     r = vhost_dev_start(&net->dev, dev);
     if (r < 0) {
         goto fail_start;
@@ -305,6 +306,7 @@ int vhost_net_start(VirtIODevice *dev, NetClientState *ncs,
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
     int r, e, i;
 
+    fprintf(stderr, "%s\n", __func__);
     if (!k->set_guest_notifiers) {
         error_report("binding does not support guest notifiers");
         r = -ENOSYS;

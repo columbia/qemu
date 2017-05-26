@@ -104,6 +104,7 @@ void virtio_queue_update_rings(VirtIODevice *vdev, int n)
     vring->used = vring_align(vring->avail +
                               offsetof(VRingAvail, ring[vring->num]),
                               vring->align);
+    fprintf(stderr, "OHCRAP %s %lx\n", __func__, vring->desc);
 }
 
 static inline uint64_t vring_desc_addr(VirtIODevice *vdev, hwaddr desc_pa,
@@ -485,6 +486,7 @@ int virtqueue_pop(VirtQueue *vq, VirtQueueElement *elem)
         max = vring_desc_len(vdev, desc_pa, i) / sizeof(VRingDesc);
         desc_pa = vring_desc_addr(vdev, desc_pa, i);
         i = 0;
+	fprintf(stderr, "%s indirect\n", __func__);
     }
 
     /* Collect all the descriptors */
@@ -503,7 +505,7 @@ int virtqueue_pop(VirtQueue *vq, VirtQueueElement *elem)
                 error_report("Too many read descriptors in indirect table");
                 exit(1);
             }
-            elem->out_addr[elem->out_num] = vring_desc_addr(vdev, desc_pa, i);
+            elem->out_addr[elem->out_num] = vring_desc_addr(vdev, desc_pa, i);	
             sg = &elem->out_sg[elem->out_num++];
         }
 

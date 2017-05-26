@@ -585,6 +585,7 @@ static int vhost_virtqueue_set_addr(struct vhost_dev *dev,
     if (r < 0) {
         return -errno;
     }
+    fprintf(stderr, "CRAP %s addr %llx\n", __func__, addr.desc_user_addr);
     return 0;
 }
 
@@ -755,6 +756,7 @@ static int vhost_virtqueue_start(struct vhost_dev *dev,
     s = l = virtio_queue_get_desc_size(vdev, idx);
     a = virtio_queue_get_desc_addr(vdev, idx);
     vq->desc = cpu_physical_memory_map(a, &l, 0);
+    fprintf(stderr, "%s vq->desc %lx a %lx\n", __func__, (unsigned long)vq->desc, (unsigned long)a);
     if (!vq->desc || l != s) {
         r = -ENOMEM;
         goto fail_alloc_desc;
@@ -762,6 +764,7 @@ static int vhost_virtqueue_start(struct vhost_dev *dev,
     s = l = virtio_queue_get_avail_size(vdev, idx);
     a = virtio_queue_get_avail_addr(vdev, idx);
     vq->avail = cpu_physical_memory_map(a, &l, 0);
+    fprintf(stderr, "%s vq->avail %lx a %lx\n", __func__, (unsigned long)vq->avail, (unsigned long)a);
     if (!vq->avail || l != s) {
         r = -ENOMEM;
         goto fail_alloc_avail;
@@ -769,6 +772,7 @@ static int vhost_virtqueue_start(struct vhost_dev *dev,
     vq->used_size = s = l = virtio_queue_get_used_size(vdev, idx);
     vq->used_phys = a = virtio_queue_get_used_addr(vdev, idx);
     vq->used = cpu_physical_memory_map(a, &l, 1);
+    fprintf(stderr, "%s vq->used %lx a %lx\n", __func__, (unsigned long)vq->used, (unsigned long)a);
     if (!vq->used || l != s) {
         r = -ENOMEM;
         goto fail_alloc_used;
@@ -777,6 +781,7 @@ static int vhost_virtqueue_start(struct vhost_dev *dev,
     vq->ring_size = s = l = virtio_queue_get_ring_size(vdev, idx);
     vq->ring_phys = a = virtio_queue_get_ring_addr(vdev, idx);
     vq->ring = cpu_physical_memory_map(a, &l, 1);
+    fprintf(stderr, "%s vq->ring %lx a %lx\n", __func__, (unsigned long)vq->ring, (unsigned long)a);
     if (!vq->ring || l != s) {
         r = -ENOMEM;
         goto fail_alloc_ring;
